@@ -42,7 +42,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
             body: JSON.stringify(activity),
             headers: {
                 'Content-Type': 'application/json',
-            },
+                  },
         }).then((response) => {
             res.status(response.status).send({
                 conversationId,
@@ -95,9 +95,12 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
                 body: JSON.stringify(activity),
                 headers: {
                     'Content-Type': 'application/json',
-                },
+                  },
             }).then((response) => {
-                res.status(response.status).json({ id: activity.id });
+                res.status(response.status).json({ 
+                    id: activity.id,
+                    watermark: conversation.history.length - 1
+                });
             });
         } else {
             // Conversation was never initialized
@@ -120,7 +123,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         activity.from = { id: 'id', name: 'Bot' };
 
         const conversation = getConversation(req.params.conversationId, conversationInitRequired);
-        if (conversation) {
+        if (conversation && activity.type=="message") {
             conversation.history.push(activity);
             res.status(200).send();
         } else {
@@ -137,7 +140,7 @@ export const getRouter = (serviceUrl: string, botUrl: string, conversationInitRe
         activity.from = { id: 'id', name: 'Bot' };
 
         const conversation = getConversation(req.params.conversationId, conversationInitRequired);
-        if (conversation) {
+        if (conversation && activity.type=="message") {
             conversation.history.push(activity);
             res.status(200).send();
         } else {
@@ -272,19 +275,28 @@ const deleteStateForUser = (req: express.Request, res: express.Response) => {
 
 // CLIENT ENDPOINT HELPERS
 const createMessageActivity = (incomingActivity: IMessageActivity, serviceUrl: string, conversationId: string): IMessageActivity => {
-    return { ...incomingActivity, channelId: 'emulator', serviceUrl, conversation: { id: conversationId }, id: uuidv4() };
+    return { ...incomingActivity, 
+        channelId: 'directline', 
+        serviceUrl,
+        conversation: { id: conversationId }, 
+        id: uuidv4(),
+        recipient:{id:'id',name:"Bot",role:"bot"} };
 };
 
 const createConversationUpdateActivity = (serviceUrl: string, conversationId: string): IConversationUpdateActivity => {
+    
+    let userId = uuidv4();
+
     const activity: IConversationUpdateActivity = {
         type: 'conversationUpdate',
-        channelId: 'emulator',
+        channelId: 'directline',
         serviceUrl,
         conversation: { id: conversationId },
         id: uuidv4(),
-        membersAdded: [],
+        membersAdded: [{id:userId,name:'User'}],
         membersRemoved: [],
-        from: { id: 'offline-directline', name: 'Offline Directline Server' },
+        from: {id:userId,name:'User'},
+        recipient:{id:'id',name:"Bot",role:"bot"}
     };
     return activity;
 };
